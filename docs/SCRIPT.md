@@ -1,13 +1,11 @@
-# Script ADAGP — Google Apps Script
+# ADAGP — Script Google Apps Script complet
 
-> Copier chaque bloc dans un fichier séparé dans l'éditeur Apps Script
-> (Extensions → Apps Script). Nommer chaque fichier exactement comme indiqué.
+> **Mode d'emploi** : copiez chaque bloc dans le fichier correspondant de votre projet Apps Script.  
+> Voir `README.md` pour le guide de mise en service complet.
 
 ---
 
 ## `appsscript.json`
-
-> Remplacer le contenu du fichier manifest existant (icône ⚙️ → "Paramètres du projet" → cocher "Afficher le fichier manifeste appsscript.json").
 
 ```json
 {
@@ -21,8 +19,6 @@
 ---
 
 ## `Config.gs`
-
-> Script → Nouveau fichier → nommer `Config`
 
 ```javascript
 function getConfig() {
@@ -53,12 +49,17 @@ function getOeuvres() {
 
 ## `SheetService.gs`
 
-> Script → Nouveau fichier → nommer `SheetService`
-
 ```javascript
-var COLS_DECLARATIONS = [
-  'Date du passage', 'Type de média', 'Nom du média', "Titre de l'œuvre",
-  'Description / Contexte', 'Lien Drive', 'Statut', 'Date de saisie', 'ID Drive'
+var COLS_TV = [
+  'Chaîne TV', 'Date', 'Heure', "Type d'émission", "Titre de l'émission",
+  'Épisode', "Titre de l'œuvre", "Nb d'œuvres", "Type d'utilisation",
+  'Commentaire', 'Lien Drive', 'Statut', 'Date de saisie', 'ID Drive'
+];
+
+var COLS_PRESSE = [
+  'Titre de presse', 'Pays', 'Année de parution', "Titre de l'œuvre",
+  "Nb d'images reproduites", 'Commentaires / Observations',
+  'Lien Drive', 'Statut', 'Date de saisie', 'ID Drive'
 ];
 
 var COLS_CONFIG = ['Paramètre', 'Valeur', 'Description'];
@@ -66,11 +67,12 @@ var COLS_OEUVRES = ['Titre', 'Année', 'Technique', 'Notes'];
 
 function initSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  ensureSheet(ss, 'Déclarations', COLS_DECLARATIONS);
+  ensureSheet(ss, '📺 Déclarations TV', COLS_TV);
+  ensureSheet(ss, '📰 Déclarations Presse', COLS_PRESSE);
   ensureSheet(ss, '⚙️ Config', COLS_CONFIG);
   ensureSheet(ss, '🎨 Œuvres', COLS_OEUVRES);
   populateDefaultConfig(ss);
-  SpreadsheetApp.getUi().alert('Onglets initialisés. Renseignez DRIVE_FOLDER_ID dans ⚙️ Config et votre clé API via le menu ADAGP → Configurer la clé API.');
+  SpreadsheetApp.getUi().alert('Onglets initialisés. Renseignez DRIVE_FOLDER_ID dans ⚙️ Config et votre clé API via ADAGP → Configurer la clé API.');
 }
 
 function ensureSheet(ss, name, headers) {
@@ -92,61 +94,116 @@ function populateDefaultConfig(ss) {
     ['DRIVE_FOLDER_ID', '', "ID du dossier Google Drive (dans l'URL après /folders/)"],
     ['AI_PROVIDER', 'gemini', 'gemini ou openai'],
     ['AI_MODEL', 'gemini-2.0-flash', 'Nom du modèle IA'],
-    ['PROMPT_EXTRACTION', getDefaultPrompt(), "Prompt envoyé à l'IA (modifiable)"]
+    ['PROMPT_TV', getDefaultPromptTV(), "Prompt IA pour les captures TV (modifiable)"],
+    ['PROMPT_PRESSE', getDefaultPromptPresse(), "Prompt IA pour les scans Presse (modifiable)"]
   ];
   sheet.getRange(2, 1, defaults.length, 3).setValues(defaults);
-  sheet.setColumnWidth(2, 300);
+  sheet.setColumnWidth(2, 350);
   sheet.setColumnWidth(3, 350);
 }
 
-function getDefaultPrompt() {
-  return "Tu analyses une image qui est soit une capture d'écran de télévision, soit un scan de presse.\n"
+function getDefaultPromptTV() {
+  return "Tu analyses une capture d'écran de télévision ou de plateforme vidéo à la demande.\n"
+    + "L'artiste concernée est Laure Barrière (auteure de BD/romans graphiques).\n"
     + "Extrais les informations suivantes au format JSON :\n"
     + "{\n"
-    + '  "date_passage": "JJ/MM/AAAA ou vide si non visible",\n'
-    + '  "type_media": "TV ou Presse ou Web",\n'
-    + '  "nom_media": "nom du média ou vide",\n'
+    + '  "type_media": "TV",\n'
+    + '  "chaine_tv": "nom de la chaîne ou vide",\n'
+    + '  "date": "JJ/MM/AAAA ou vide si non visible",\n'
+    + '  "heure": "HH:MM ou vide si non visible",\n'
+    + '  "type_emission": "Journal / Magazine / Divertissement / Documentaire / Autre ou vide",\n'
+    + '  "titre_emission": "titre de l\'émission ou vide",\n'
+    + '  "episode": "titre ou numéro de l\'épisode, ou vide",\n'
     + '  "titre_oeuvre": "titre le plus proche parmi cette liste : [LISTE_OEUVRES], ou vide si aucun match clair",\n'
-    + '  "description": "résumé en 1-2 phrases du contexte d\'apparition de l\'œuvre"\n'
+    + '  "nb_oeuvres": 1,\n'
+    + '  "type_utilisation": "Banc-titre ou Décoration ou Autre ou vide",\n'
+    + '  "commentaire": "contexte d\'apparition de l\'œuvre en 1-2 phrases, ou vide"\n'
+    + "}\n"
+    + "Réponds uniquement avec le JSON, sans commentaire.";
+}
+
+function getDefaultPromptPresse() {
+  return "Tu analyses un scan d'article de presse écrite ou de site internet.\n"
+    + "L'artiste concernée est Laure Barrière (auteure de BD/romans graphiques).\n"
+    + "Extrais les informations suivantes au format JSON :\n"
+    + "{\n"
+    + '  "type_media": "Presse",\n'
+    + '  "titre_presse": "nom du magazine ou journal ou vide",\n'
+    + '  "pays": "France ou autre pays ou vide",\n'
+    + '  "annee": "AAAA ou vide si non visible",\n'
+    + '  "titre_oeuvre": "titre le plus proche parmi cette liste : [LISTE_OEUVRES], ou vide si aucun match clair",\n'
+    + '  "nb_images": 1,\n'
+    + '  "commentaire": "contexte de l\'apparition de l\'œuvre en 1-2 phrases, ou vide"\n'
     + "}\n"
     + "Réponds uniquement avec le JSON, sans commentaire.";
 }
 
 function appendDeclaration(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Déclarations');
-  if (!sheet) throw new Error("Onglet 'Déclarations' introuvable. Lancez ADAGP → Initialiser les onglets.");
   var driveUrl = 'https://drive.google.com/file/d/' + data.fileId + '/view';
-  sheet.appendRow([
-    data.date_passage || '',
-    data.type_media || '',
-    data.nom_media || '',
-    data.titre_oeuvre || '',
-    data.description || '',
-    driveUrl,
-    'validé',
-    Utilities.formatDate(new Date(), 'Europe/Paris', 'dd/MM/yyyy'),
-    data.fileId
-  ]);
-  // Masquer la colonne ID Drive (colonne I = 9)
-  sheet.hideColumns(9);
+  var today = Utilities.formatDate(new Date(), 'Europe/Paris', 'dd/MM/yyyy');
+
+  if (data.type_media === 'Presse') {
+    var sheetP = ss.getSheetByName('📰 Déclarations Presse');
+    if (!sheetP) throw new Error("Onglet '📰 Déclarations Presse' introuvable. Lancez ADAGP → Initialiser les onglets.");
+    sheetP.appendRow([
+      data.titre_presse  || '',
+      data.pays          || '',
+      data.annee         || '',
+      data.titre_oeuvre  || '',
+      data.nb_images     || 1,
+      data.commentaire   || '',
+      driveUrl,
+      'validé',
+      today,
+      data.fileId
+    ]);
+    sheetP.hideColumns(10);
+  } else {
+    var sheetTV = ss.getSheetByName('📺 Déclarations TV');
+    if (!sheetTV) throw new Error("Onglet '📺 Déclarations TV' introuvable. Lancez ADAGP → Initialiser les onglets.");
+    sheetTV.appendRow([
+      data.chaine_tv        || '',
+      data.date             || '',
+      data.heure            || '',
+      data.type_emission    || '',
+      data.titre_emission   || '',
+      data.episode          || '',
+      data.titre_oeuvre     || '',
+      data.nb_oeuvres       || 1,
+      data.type_utilisation || '',
+      data.commentaire      || '',
+      driveUrl,
+      'validé',
+      today,
+      data.fileId
+    ]);
+    sheetTV.hideColumns(14);
+  }
 }
 
 function getProcessedFileIds() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Déclarations');
-  if (!sheet || sheet.getLastRow() < 2) return [];
-  return sheet.getRange(2, 9, sheet.getLastRow() - 1, 1)
-    .getValues()
-    .flat()
-    .filter(Boolean);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ids = [];
+  var sheetTV = ss.getSheetByName('📺 Déclarations TV');
+  if (sheetTV && sheetTV.getLastRow() > 1) {
+    ids = ids.concat(
+      sheetTV.getRange(2, 14, sheetTV.getLastRow() - 1, 1).getValues().flat().filter(Boolean)
+    );
+  }
+  var sheetP = ss.getSheetByName('📰 Déclarations Presse');
+  if (sheetP && sheetP.getLastRow() > 1) {
+    ids = ids.concat(
+      sheetP.getRange(2, 10, sheetP.getLastRow() - 1, 1).getValues().flat().filter(Boolean)
+    );
+  }
+  return ids;
 }
 ```
 
 ---
 
 ## `DriveService.gs`
-
-> Script → Nouveau fichier → nommer `DriveService`
 
 ```javascript
 var MIME_TYPES_ACCEPTES = [
@@ -182,28 +239,25 @@ function getUnprocessedFiles() {
 
 ## `AIService.gs`
 
-> Script → Nouveau fichier → nommer `AIService`
-
 ```javascript
 /**
  * AIService.gs — Extraction vision via Gemini ou OpenAI
- * Lit un fichier Drive, encode en base64, envoie à l'API choisie
- * et retourne l'objet JSON parsé (déclaration ADAGP).
+ * Envoie l'image à l'API IA avec le prompt adapté au type de fichier (TV ou Presse)
+ * et retourne l'objet JSON parsé.
  */
 
-/**
- * Point d'entrée principal : extrait les données d'une image via IA.
- * @param {string} fileId  - ID Google Drive du fichier image
- * @param {Object} config  - Objet config issu de getConfig()
- * @returns {Object}       - Objet JSON extrait par le modèle
- */
 function extractFromImage(fileId, config) {
   var file = DriveApp.getFileById(fileId);
   var blob = file.getBlob();
   var base64 = Utilities.base64Encode(blob.getBytes());
   var mimeType = blob.getContentType();
   var oeuvres = getOeuvres();
-  var prompt = buildPrompt(config.PROMPT_EXTRACTION, oeuvres);
+
+  var promptTemplate = detectMediaType(file.getName()) === 'Presse'
+    ? (config.PROMPT_PRESSE || getDefaultPromptPresse())
+    : (config.PROMPT_TV    || getDefaultPromptTV());
+
+  var prompt = buildPrompt(promptTemplate, oeuvres);
 
   if (config.AI_PROVIDER === 'openai') {
     return callOpenAI(base64, mimeType, prompt, config);
@@ -211,25 +265,18 @@ function extractFromImage(fileId, config) {
   return callGemini(base64, mimeType, prompt, config);
 }
 
-/**
- * Injecte la liste des œuvres dans le template de prompt.
- * @param {string}   template - Template contenant '[LISTE_OEUVRES]'
- * @param {string[]} oeuvres  - Titres des œuvres connues
- * @returns {string}          - Prompt final
- */
+function detectMediaType(filename) {
+  var lower = filename.toLowerCase();
+  if (/\.pdf$/.test(lower)) return 'Presse';
+  if (/cosmo|figaro|monde|obs|elle|marie|vogue|express|point|telerama|presse|magazine|journal|article/.test(lower)) return 'Presse';
+  return 'TV';
+}
+
 function buildPrompt(template, oeuvres) {
   var liste = oeuvres.length > 0 ? oeuvres.join(', ') : 'aucune liste disponible';
   return template.split('[LISTE_OEUVRES]').join(liste);
 }
 
-/**
- * Appelle l'API Gemini (Google Generative Language) avec vision.
- * @param {string} base64   - Image encodée en base64
- * @param {string} mimeType - Type MIME de l'image (ex: image/jpeg)
- * @param {string} prompt   - Prompt d'extraction
- * @param {Object} config   - Config (AI_MODEL, AI_API_KEY)
- * @returns {Object}        - Objet JSON parsé depuis la réponse Gemini
- */
 function callGemini(base64, mimeType, prompt, config) {
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/'
     + config.AI_MODEL + ':generateContent?key=' + config.AI_API_KEY;
@@ -254,18 +301,9 @@ function callGemini(base64, mimeType, prompt, config) {
   }
   var result = JSON.parse(response.getContentText());
   var text = result.candidates[0].content.parts[0].text;
-  // text est déjà une chaîne JSON valide grâce à response_mime_type: 'application/json'
   return JSON.parse(text);
 }
 
-/**
- * Appelle l'API OpenAI (GPT-4 Vision) avec mode JSON forcé.
- * @param {string} base64   - Image encodée en base64
- * @param {string} mimeType - Type MIME de l'image (ex: image/jpeg)
- * @param {string} prompt   - Prompt d'extraction
- * @param {Object} config   - Config (AI_MODEL, AI_API_KEY)
- * @returns {Object}        - Objet JSON parsé depuis la réponse OpenAI
- */
 function callOpenAI(base64, mimeType, prompt, config) {
   var url = 'https://api.openai.com/v1/chat/completions';
   var payload = {
@@ -298,8 +336,6 @@ function callOpenAI(base64, mimeType, prompt, config) {
 ---
 
 ## `Menu.gs`
-
-> Script → Nouveau fichier → nommer `Menu`
 
 ```javascript
 function onOpen() {
@@ -376,8 +412,6 @@ function saveDeclaration(data) {
 
 ## `Sidebar.html`
 
-> HTML → Nouveau fichier → nommer `Sidebar` (choisir HTML, pas Script)
-
 ```html
 <!DOCTYPE html>
 <html>
@@ -388,14 +422,19 @@ function saveDeclaration(data) {
     body { font-family: Arial, sans-serif; margin: 0; padding: 16px; font-size: 13px; color: #333; }
     h3 { margin: 0 0 4px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .progress { color: #888; font-size: 12px; margin-bottom: 10px; }
-    .preview-wrap { width: 100%; height: 220px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; margin-bottom: 12px; background: #f9f9f9; }
+    .media-badge { display: inline-block; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 10px; margin-bottom: 8px; }
+    .badge-tv { background: #e8f0fe; color: #1a73e8; }
+    .badge-presse { background: #fce8e6; color: #c5221f; }
+    .preview-wrap { width: 100%; height: 200px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; margin-bottom: 12px; background: #f9f9f9; }
     iframe { width: 100%; height: 100%; border: none; }
     label { display: block; font-weight: bold; margin-top: 8px; margin-bottom: 3px; font-size: 12px; }
-    input[type=text], select, textarea {
+    input[type=text], input[type=number], select, textarea {
       width: 100%; padding: 5px 7px; border: 1px solid #ccc;
       border-radius: 3px; font-size: 12px; font-family: Arial, sans-serif;
     }
-    textarea { height: 56px; resize: vertical; }
+    textarea { height: 52px; resize: vertical; }
+    .row2 { display: flex; gap: 8px; }
+    .row2 > div { flex: 1; }
     .error-box { color: #c00; font-size: 11px; margin-top: 6px; padding: 6px 8px; background: #fff0f0; border-radius: 3px; }
     .buttons { margin-top: 14px; display: flex; gap: 8px; }
     .btn-skip { flex: 1; padding: 8px 4px; background: #f1f3f4; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; font-size: 12px; }
@@ -412,29 +451,87 @@ function saveDeclaration(data) {
   <div id="st-main" style="display:none">
     <h3 id="filename" title=""></h3>
     <div class="progress" id="progress"></div>
+    <span id="media-badge" class="media-badge"></span>
     <div class="preview-wrap">
       <iframe id="preview" src="about:blank" allow="same-origin"></iframe>
     </div>
 
-    <label>Date du passage</label>
-    <input id="f-date" type="text" placeholder="JJ/MM/AAAA">
+    <!-- Formulaire TV -->
+    <div id="form-tv" style="display:none">
+      <div class="row2">
+        <div>
+          <label>Chaîne TV</label>
+          <input id="tv-chaine" type="text" placeholder="Ex : France 4">
+        </div>
+        <div>
+          <label>Type d'émission</label>
+          <select id="tv-type-emission">
+            <option value="">— choisir —</option>
+            <option value="Journal">Journal</option>
+            <option value="Magazine">Magazine</option>
+            <option value="Divertissement">Divertissement</option>
+            <option value="Documentaire">Documentaire</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>Date (JJ/MM/AAAA)</label>
+          <input id="tv-date" type="text" placeholder="27/10/2025">
+        </div>
+        <div>
+          <label>Heure (HH:MM)</label>
+          <input id="tv-heure" type="text" placeholder="19:30">
+        </div>
+      </div>
+      <label>Titre de l'émission</label>
+      <input id="tv-titre-emission" type="text" placeholder="Ex : Les Maternelles">
+      <label>Épisode</label>
+      <input id="tv-episode" type="text" placeholder="Titre ou numéro (facultatif)">
+      <label>Titre de l'œuvre</label>
+      <select id="tv-oeuvre"></select>
+      <div class="row2">
+        <div>
+          <label>Nb d'œuvres</label>
+          <input id="tv-nb-oeuvres" type="number" min="1" value="1">
+        </div>
+        <div>
+          <label>Type d'utilisation</label>
+          <select id="tv-type-utilisation">
+            <option value="">— choisir —</option>
+            <option value="Banc-titre">Banc-titre</option>
+            <option value="Décoration">Décoration</option>
+            <option value="Générique">Générique</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+      <label>Commentaire</label>
+      <textarea id="tv-commentaire" placeholder="Contexte de l'apparition…"></textarea>
+    </div>
 
-    <label>Type de média</label>
-    <select id="f-type">
-      <option value="">— choisir —</option>
-      <option value="TV">TV</option>
-      <option value="Presse">Presse</option>
-      <option value="Web">Web</option>
-    </select>
-
-    <label>Nom du média</label>
-    <input id="f-media" type="text" placeholder="Ex : France 5, Le Monde…">
-
-    <label>Titre de l'œuvre</label>
-    <select id="f-oeuvre"></select>
-
-    <label>Description / Contexte</label>
-    <textarea id="f-desc" placeholder="Résumé du contexte…"></textarea>
+    <!-- Formulaire Presse -->
+    <div id="form-presse" style="display:none">
+      <label>Titre de presse</label>
+      <input id="pr-titre" type="text" placeholder="Ex : Cosmopolitan, Le Figaro…">
+      <div class="row2">
+        <div>
+          <label>Pays</label>
+          <input id="pr-pays" type="text" placeholder="France">
+        </div>
+        <div>
+          <label>Année de parution</label>
+          <input id="pr-annee" type="text" placeholder="2026">
+        </div>
+      </div>
+      <label>Titre de l'œuvre</label>
+      <select id="pr-oeuvre"></select>
+      <label>Nb d'images reproduites</label>
+      <input id="pr-nb-images" type="number" min="1" value="1">
+      <label>Commentaires / Observations</label>
+      <textarea id="pr-commentaire" placeholder="Contexte de l'apparition…"></textarea>
+    </div>
 
     <div id="ai-error" class="error-box" style="display:none"></div>
 
@@ -450,6 +547,7 @@ function saveDeclaration(data) {
 
   <script>
     var currentFileId = null;
+    var currentType = 'TV';
     var ignoredIds = [];
 
     function show(id) {
@@ -461,12 +559,14 @@ function saveDeclaration(data) {
     function loadOeuvres() {
       google.script.run
         .withSuccessHandler(function(list) {
-          var sel = document.getElementById('f-oeuvre');
-          sel.innerHTML = '<option value="">— choisir ou laisser vide —</option>';
-          list.forEach(function(o) {
-            var opt = document.createElement('option');
-            opt.value = o; opt.textContent = o;
-            sel.appendChild(opt);
+          ['tv-oeuvre','pr-oeuvre'].forEach(function(selId) {
+            var sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">— choisir ou laisser vide —</option>';
+            list.forEach(function(o) {
+              var opt = document.createElement('option');
+              opt.value = o; opt.textContent = o;
+              sel.appendChild(opt);
+            });
           });
           loadNext();
         })
@@ -493,11 +593,36 @@ function saveDeclaration(data) {
         'https://drive.google.com/file/d/' + file.id + '/preview';
 
       var f = file.fields || {};
-      document.getElementById('f-date').value  = f.date_passage  || '';
-      document.getElementById('f-type').value  = f.type_media    || '';
-      document.getElementById('f-media').value = f.nom_media     || '';
-      document.getElementById('f-oeuvre').value = f.titre_oeuvre || '';
-      document.getElementById('f-desc').value  = f.description   || '';
+      currentType = (f.type_media === 'Presse') ? 'Presse' : 'TV';
+
+      var badge = document.getElementById('media-badge');
+      if (currentType === 'Presse') {
+        badge.textContent = '📰 Presse';
+        badge.className = 'media-badge badge-presse';
+        document.getElementById('form-tv').style.display = 'none';
+        document.getElementById('form-presse').style.display = 'block';
+        document.getElementById('pr-titre').value       = f.titre_presse || '';
+        document.getElementById('pr-pays').value        = f.pays         || 'France';
+        document.getElementById('pr-annee').value       = f.annee        || '';
+        document.getElementById('pr-oeuvre').value      = f.titre_oeuvre || '';
+        document.getElementById('pr-nb-images').value   = f.nb_images    || 1;
+        document.getElementById('pr-commentaire').value = f.commentaire  || '';
+      } else {
+        badge.textContent = '📺 TV';
+        badge.className = 'media-badge badge-tv';
+        document.getElementById('form-presse').style.display = 'none';
+        document.getElementById('form-tv').style.display = 'block';
+        document.getElementById('tv-chaine').value           = f.chaine_tv         || '';
+        document.getElementById('tv-date').value             = f.date              || '';
+        document.getElementById('tv-heure').value            = f.heure             || '';
+        document.getElementById('tv-type-emission').value    = f.type_emission     || '';
+        document.getElementById('tv-titre-emission').value   = f.titre_emission    || '';
+        document.getElementById('tv-episode').value          = f.episode           || '';
+        document.getElementById('tv-oeuvre').value           = f.titre_oeuvre      || '';
+        document.getElementById('tv-nb-oeuvres').value       = f.nb_oeuvres        || 1;
+        document.getElementById('tv-type-utilisation').value = f.type_utilisation  || '';
+        document.getElementById('tv-commentaire').value      = f.commentaire       || '';
+      }
 
       var errBox = document.getElementById('ai-error');
       if (file.error) {
@@ -515,14 +640,28 @@ function saveDeclaration(data) {
       var btn = document.getElementById('btn-save');
       btn.disabled = true;
       btn.textContent = 'Enregistrement…';
-      var data = {
-        fileId:        currentFileId,
-        date_passage:  document.getElementById('f-date').value.trim(),
-        type_media:    document.getElementById('f-type').value,
-        nom_media:     document.getElementById('f-media').value.trim(),
-        titre_oeuvre:  document.getElementById('f-oeuvre').value,
-        description:   document.getElementById('f-desc').value.trim()
-      };
+
+      var data = { fileId: currentFileId, type_media: currentType };
+      if (currentType === 'Presse') {
+        data.titre_presse = document.getElementById('pr-titre').value.trim();
+        data.pays         = document.getElementById('pr-pays').value.trim();
+        data.annee        = document.getElementById('pr-annee').value.trim();
+        data.titre_oeuvre = document.getElementById('pr-oeuvre').value;
+        data.nb_images    = parseInt(document.getElementById('pr-nb-images').value, 10) || 1;
+        data.commentaire  = document.getElementById('pr-commentaire').value.trim();
+      } else {
+        data.chaine_tv        = document.getElementById('tv-chaine').value.trim();
+        data.date             = document.getElementById('tv-date').value.trim();
+        data.heure            = document.getElementById('tv-heure').value.trim();
+        data.type_emission    = document.getElementById('tv-type-emission').value;
+        data.titre_emission   = document.getElementById('tv-titre-emission').value.trim();
+        data.episode          = document.getElementById('tv-episode').value.trim();
+        data.titre_oeuvre     = document.getElementById('tv-oeuvre').value;
+        data.nb_oeuvres       = parseInt(document.getElementById('tv-nb-oeuvres').value, 10) || 1;
+        data.type_utilisation = document.getElementById('tv-type-utilisation').value;
+        data.commentaire      = document.getElementById('tv-commentaire').value.trim();
+      }
+
       google.script.run
         .withSuccessHandler(loadNext)
         .withFailureHandler(function(e) {
