@@ -32,7 +32,7 @@ function extractFromImage(fileId, config) {
  */
 function buildPrompt(template, oeuvres) {
   var liste = oeuvres.length > 0 ? oeuvres.join(', ') : 'aucune liste disponible';
-  return template.replace('[LISTE_OEUVRES]', liste);
+  return template.split('[LISTE_OEUVRES]').join(liste);
 }
 
 /**
@@ -67,6 +67,7 @@ function callGemini(base64, mimeType, prompt, config) {
   }
   var result = JSON.parse(response.getContentText());
   var text = result.candidates[0].content.parts[0].text;
+  // text est déjà une chaîne JSON valide grâce à response_mime_type: 'application/json'
   return JSON.parse(text);
 }
 
