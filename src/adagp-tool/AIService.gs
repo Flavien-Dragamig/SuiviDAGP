@@ -1,11 +1,13 @@
 /**
  * AIService.gs — Extraction vision via Gemini ou OpenAI
- * Lit un fichier Drive, encode en base64, envoie à l'API choisie
- * et retourne l'objet JSON parsé (déclaration ADAGP).
+ * Envoie l'image à l'API IA avec le prompt adapté au type de fichier (TV ou Presse)
+ * et retourne l'objet JSON parsé.
  */
 
 /**
- * Point d'entrée principal : extrait les données d'une image via IA.
+ * Point d'entrée : extrait les champs ADAGP d'une image.
+ * Choisit automatiquement PROMPT_TV ou PROMPT_PRESSE selon le nom du fichier,
+ * avec PROMPT_TV comme fallback si le type n'est pas détectable.
  * @param {string} fileId  - ID Google Drive du fichier image
  * @param {Object} config  - Objet config issu de getConfig()
  * @returns {Object}       - Objet JSON extrait par le modèle
@@ -16,12 +18,32 @@ function extractFromImage(fileId, config) {
   var base64 = Utilities.base64Encode(blob.getBytes());
   var mimeType = blob.getContentType();
   var oeuvres = getOeuvres();
-  var prompt = buildPrompt(config.PROMPT_EXTRACTION, oeuvres);
+
+  var promptTemplate = detectMediaType(file.getName()) === 'Presse'
+    ? (config.PROMPT_PRESSE || getDefaultPromptPresse())
+    : (config.PROMPT_TV    || getDefaultPromptTV());
+
+  var prompt = buildPrompt(promptTemplate, oeuvres);
 
   if (config.AI_PROVIDER === 'openai') {
     return callOpenAI(base64, mimeType, prompt, config);
   }
   return callGemini(base64, mimeType, prompt, config);
+}
+
+/**
+ * Détecte le type de média (TV ou Presse) depuis le nom du fichier.
+ * Convention : les scans presse sont dans un dossier "presses" ou ont un nom incluant
+ * des indicateurs presse (pdf, Cosmo, etc.). Fallback : TV.
+ * @param {string} filename
+ * @returns {string} 'TV' ou 'Presse'
+ */
+function detectMediaType(filename) {
+  var lower = filename.toLowerCase();
+  // Signaux presse : PDF, noms de magazines connus, "presse"
+  if (/\.pdf$/.test(lower)) return 'Presse';
+  if (/cosmo|figaro|monde|obs|elle|marie|vogue|express|point|telerama|presse|magazine|journal|article/.test(lower)) return 'Presse';
+  return 'TV';
 }
 
 /**
@@ -67,7 +89,6 @@ function callGemini(base64, mimeType, prompt, config) {
   }
   var result = JSON.parse(response.getContentText());
   var text = result.candidates[0].content.parts[0].text;
-  // text est déjà une chaîne JSON valide grâce à response_mime_type: 'application/json'
   return JSON.parse(text);
 }
 

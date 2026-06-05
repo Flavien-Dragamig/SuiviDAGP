@@ -2,7 +2,8 @@
 
 Outil Google Apps Script pour déclarer les passages médias d'une adhérente ADAGP.
 Analyse les captures TV et scans presse par IA (Gemini Flash gratuit ou OpenAI), valide les champs
-dans un panneau latéral, et enregistre les déclarations dans un Google Sheet.
+dans un panneau latéral, et enregistre les déclarations dans un Google Sheet — avec les colonnes
+exactes des formulaires officiels ADAGP.
 
 ---
 
@@ -74,7 +75,7 @@ dans les paramètres du script.
 3. Cliquer **ADAGP → Initialiser les onglets**.
 4. Une fenêtre d'autorisation peut apparaître → accepter les accès demandés
    (Drive, Sheets, appels URL externes pour l'IA).
-5. Trois onglets sont créés : `Déclarations`, `⚙️ Config`, `🎨 Œuvres`.
+5. Quatre onglets sont créés : `📺 Déclarations TV`, `📰 Déclarations Presse`, `⚙️ Config`, `🎨 Œuvres`.
 
 ### Étape 6 — Configurer la clé API via le menu
 
@@ -107,37 +108,61 @@ que vous avez configuré.
 
 Formats acceptés : **JPG, PNG, PDF, GIF, WEBP**
 
+> L'outil détecte automatiquement le type (TV ou Presse) d'après le nom du fichier :
+> les PDF et les noms contenant des mots-clés presse (cosmo, figaro, monde…) sont traités
+> comme de la presse ; tout le reste comme de la TV.
+
 ### 2. Lancer le traitement
 
 Dans votre Google Sheet, cliquer **ADAGP → Traiter les nouveaux fichiers**.
 
 ### 3. Valider chaque passage
 
-Un panneau latéral s'ouvre pour chaque fichier :
+Un panneau latéral s'ouvre pour chaque fichier avec le badge **📺 TV** ou **📰 Presse** :
 
+**Vue TV :**
 ```
 ┌─────────────────────────────────────┐
-│  nom_du_fichier.jpg                 │
-│  Fichier 1 sur 3 non traité(s)      │
+│  France 4 les maternelles.png   📺  │
+│  Fichier 1 sur 5 non traité(s)      │
 │  [ Aperçu du fichier ]              │
 ├─────────────────────────────────────┤
-│  Date du passage   [12/03/2026]     │
-│  Type de média     [TV         ▼]   │
-│  Nom du média      [France 5   ]    │
-│  Titre de l'œuvre  [Mon œuvre  ▼]   │
-│  Description       [Reportage…]     │
+│  Chaîne TV    [france4  ]  Type ém. [Magazine ▼]
+│  Date         [27/10/2025] Heure    [19:30   ]
+│  Titre émission [Les Maternelles    ]
+│  Épisode        [                  ]
+│  Titre de l'œuvre  [La Meuf en paillettes ▼]
+│  Nb d'œuvres  [1]  Type util.  [Banc-titre ▼]
+│  Commentaire    [Reportage…         ]
 ├─────────────────────────────────────┤
 │  [⏭ Ignorer]    [💾 Valider]       │
 └─────────────────────────────────────┘
 ```
 
-- **💾 Valider** → enregistre la ligne dans `Déclarations` et passe au fichier suivant
+**Vue Presse :**
+```
+┌─────────────────────────────────────┐
+│  COSMO 2.jpg                    📰  │
+│  Fichier 2 sur 5 non traité(s)      │
+│  [ Aperçu du fichier ]              │
+├─────────────────────────────────────┤
+│  Titre de presse  [Cosmopolitan    ]
+│  Pays  [France]   Année  [2026     ]
+│  Titre de l'œuvre [La Meuf…  ▼    ]
+│  Nb d'images reproduites  [1       ]
+│  Commentaires / Observations  […   ]
+├─────────────────────────────────────┤
+│  [⏭ Ignorer]    [💾 Valider]       │
+└─────────────────────────────────────┘
+```
+
+- **💾 Valider** → enregistre la ligne dans l'onglet correspondant et passe au fichier suivant
 - **⏭ Ignorer** → saute ce fichier pour cette session (il réapparaîtra au prochain lancement)
 
 ### 4. Consulter vos déclarations
 
-L'onglet **Déclarations** contient toutes vos déclarations validées, prêtes à être
-utilisées pour votre déclaration ADAGP officielle.
+Les onglets **📺 Déclarations TV** et **📰 Déclarations Presse** contiennent toutes vos
+déclarations validées, avec les colonnes exactes du formulaire officiel ADAGP.
 
 ---
 
@@ -156,13 +181,14 @@ Si vous changez de fournisseur, mettez à jour votre clé API via **ADAGP → Co
 
 ---
 
-## Adapter le prompt d'extraction
+## Adapter les prompts d'extraction
 
-L'IA utilise le texte de la cellule `PROMPT_EXTRACTION` dans l'onglet ⚙️ Config.
-Vous pouvez le modifier directement si les résultats ne sont pas satisfaisants.
+Les cellules `PROMPT_TV` et `PROMPT_PRESSE` dans l'onglet ⚙️ Config contiennent les instructions
+envoyées à l'IA pour chaque type de fichier. Vous pouvez les modifier directement si les résultats
+ne sont pas satisfaisants.
 
-Le marqueur `[LISTE_OEUVRES]` dans le prompt est automatiquement remplacé par la liste
-de vos œuvres de l'onglet 🎨 Œuvres.
+Le marqueur `[LISTE_OEUVRES]` est automatiquement remplacé par la liste de vos œuvres
+de l'onglet 🎨 Œuvres.
 
 ---
 
@@ -174,10 +200,11 @@ de vos œuvres de l'onglet 🎨 Œuvres.
 | "DRIVE_FOLDER_ID non configuré" | Renseigner l'ID dans l'onglet ⚙️ Config |
 | "Gemini API erreur 400" | Vérifier la clé API (ADAGP → Configurer la clé API) |
 | "Gemini API erreur 429" | Quota dépassé — réessayer dans 1 minute |
-| "Onglet 'Déclarations' introuvable" | Lancer ADAGP → Initialiser les onglets |
+| "Onglet introuvable" | Lancer ADAGP → Initialiser les onglets |
 | L'aperçu du fichier ne s'affiche pas | Vérifier que le fichier est dans un Drive accessible par votre compte Google |
-| L'IA laisse les champs vides | Remplir manuellement — ajuster le prompt dans ⚙️ Config si cela se répète |
+| L'IA laisse les champs vides | Remplir manuellement — ajuster `PROMPT_TV` ou `PROMPT_PRESSE` dans ⚙️ Config |
 | Le menu demande des autorisations | Accepter : l'outil a besoin d'accéder à Drive, Sheets et à l'API IA |
+| Fichier TV traité comme Presse | Renommer le fichier pour enlever les mots-clés presse |
 
 ---
 
@@ -185,9 +212,20 @@ de vos œuvres de l'onglet 🎨 Œuvres.
 
 | Onglet | Rôle |
 |---|---|
-| `Déclarations` | Vos déclarations validées (une ligne par passage média) |
-| `⚙️ Config` | Paramètres : dossier Drive, modèle IA, prompt d'extraction |
+| `📺 Déclarations TV` | Passages TV validés (colonnes du formulaire ADAGP Télévision) |
+| `📰 Déclarations Presse` | Articles presse validés (colonnes du formulaire ADAGP Presse) |
+| `⚙️ Config` | Paramètres : dossier Drive, modèle IA, prompts d'extraction |
 | `🎨 Œuvres` | Liste de vos œuvres (utilisée par l'IA pour identifier les titres) |
+
+### Colonnes `📺 Déclarations TV`
+
+| Chaîne TV | Date | Heure | Type d'émission | Titre de l'émission | Épisode | Titre de l'œuvre | Nb d'œuvres | Type d'utilisation | Commentaire | Lien Drive | Statut | Date de saisie |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+### Colonnes `📰 Déclarations Presse`
+
+| Titre de presse | Pays | Année de parution | Titre de l'œuvre | Nb d'images reproduites | Commentaires / Observations | Lien Drive | Statut | Date de saisie |
+|---|---|---|---|---|---|---|---|---|
 
 ---
 
