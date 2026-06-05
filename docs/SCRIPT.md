@@ -2,6 +2,8 @@
 
 > **Mode d'emploi** : copiez chaque bloc dans le fichier correspondant de votre projet Apps Script.  
 > Voir `README.md` pour le guide de mise en service complet.
+>
+> *Développé par Studio Dragamig*
 
 ---
 

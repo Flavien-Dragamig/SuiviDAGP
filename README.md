@@ -229,4 +229,4 @@ de l'onglet 🎨 Œuvres.
 
 ---
 
-*Outil développé pour la gestion des droits ADAGP — [Association pour la Diffusion des Arts Graphiques et Plastiques](https://www.adagp.fr)*
+*Outil développé par [Studio Dragamig](https://studiodragamig.fr) pour la gestion des droits ADAGP — [Association pour la Diffusion des Arts Graphiques et Plastiques](https://www.adagp.fr)*
