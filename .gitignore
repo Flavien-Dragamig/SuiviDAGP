@@ -1,0 +1,23 @@
+# Framework MasterProject — outil local, pas du contenu projet
+framework/
+
+# Environnement — ne jamais committer
+.env
+.env.local
+.env.*.local
+
+# Dépendances
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
