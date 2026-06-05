@@ -57,6 +57,7 @@ function getDefaultPrompt() {
 function appendDeclaration(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('Déclarations');
+  if (!sheet) throw new Error("Onglet 'Déclarations' introuvable. Lancez ADAGP → Initialiser les onglets.");
   var driveUrl = 'https://drive.google.com/file/d/' + data.fileId + '/view';
   sheet.appendRow([
     data.date_passage || '',
