@@ -17,13 +17,10 @@ function getUnprocessedFiles() {
   var result = [];
   while (files.hasNext()) {
     var file = files.next();
-    if (MIME_TYPES_ACCEPTES.indexOf(file.getMimeType()) !== -1
-        && !processedIds.has(file.getId())) {
-      result.push({
-        id: file.getId(),
-        name: file.getName(),
-        mimeType: file.getMimeType()
-      });
+    var mimeType = file.getMimeType();
+    var id = file.getId();
+    if (MIME_TYPES_ACCEPTES.indexOf(mimeType) !== -1 && !processedIds.has(id)) {
+      result.push({ id: id, name: file.getName(), mimeType: mimeType });
     }
   }
   return result;
