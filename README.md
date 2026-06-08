@@ -1,53 +1,68 @@
 # Outil de déclaration ADAGP
 
 Outil Google Apps Script pour déclarer les passages médias d'une adhérente ADAGP.
-Analyse les captures TV et scans presse par IA (Gemini Flash gratuit ou OpenAI), valide les champs
-dans un panneau latéral, et enregistre les déclarations dans un Google Sheet — avec les colonnes
-exactes des formulaires officiels ADAGP.
+Il analyse les captures TV et les scans presse par IA (Gemini Flash gratuit ou OpenAI), vous laisse
+vérifier les champs dans un panneau latéral, et enregistre les déclarations dans un Google Sheet,
+avec les colonnes exactes des formulaires officiels ADAGP.
+
+> **Pas besoin d'être à l'aise avec l'informatique.** L'installation se fait une seule fois, en
+> suivant les étapes dans l'ordre. Vous ne pouvez rien casser : si une étape échoue, il suffit de la
+> recommencer. Une fois en place, l'usage quotidien tient en deux clics.
 
 ---
 
 ## Prérequis
 
-- Un compte Google avec accès à Google Drive et Google Sheets
-- Une clé API **Gemini** (gratuit) : https://aistudio.google.com/apikey
-  *(ou une clé OpenAI si vous préférez ce modèle)*
+- Un compte Google (le même que pour vos mails ou Drive habituels).
+- Une clé API **Gemini**, gratuite : https://aistudio.google.com/apikey
+  *(ou une clé OpenAI si vous préférez ce modèle, mais Gemini suffit et ne coûte rien).*
+
+Une « clé API » est simplement un mot de passe que l'outil utilise pour parler à l'IA. Vous la
+copiez une fois, et vous n'y touchez plus.
 
 ---
 
-## Installation (une seule fois, ~10 minutes)
+## Installation (une seule fois, environ 10 minutes)
 
-### Étape 1 — Préparer le Google Sheet
+Faites les étapes dans l'ordre, de 1 à 8. Chaque étape est indépendante : vous pouvez vous arrêter et
+reprendre plus tard sans rien perdre.
+
+### Étape 1 : préparer le Google Sheet
 
 1. Créer un nouveau Google Sheet vide.
 2. Lui donner un nom, par exemple : `Déclarations ADAGP 2026`.
 
-### Étape 2 — Ouvrir l'éditeur Apps Script
+### Étape 2 : ouvrir l'éditeur Apps Script
 
-1. Dans le Sheet : **Extensions → Apps Script**.
-2. L'éditeur s'ouvre dans un nouvel onglet.
+1. Dans le Sheet, ouvrir le menu **Extensions**, puis cliquer **Apps Script**.
+2. L'éditeur s'ouvre dans un nouvel onglet. C'est normal qu'il ait l'air technique : vous allez juste
+   y coller du texte, sans rien comprendre au code.
 
-### Étape 3 — Copier le code depuis `docs/SCRIPT.md`
+> 📸 **Capture utile ici** : `docs/captures/01-menu-extensions.png`
+> *Ce qu'on doit voir : le menu « Extensions » ouvert avec l'option « Apps Script » surlignée.*
 
-Pour chaque fichier décrit dans `docs/SCRIPT.md` :
+### Étape 3 : copier le code depuis `docs/SCRIPT.md`
 
-**Pour les fichiers `.gs` (Script) :**
-1. Dans l'éditeur, cliquer `+` à côté de "Fichiers" → choisir **Script**.
-2. Nommer le fichier exactement comme indiqué (sans extension `.gs`).
-3. Supprimer le contenu par défaut et coller le code correspondant.
+Le fichier `docs/SCRIPT.md` contient tout le code à recopier, fichier par fichier. Ouvrez-le à côté,
+et pour chaque fichier décrit, suivez la méthode correspondante ci-dessous.
+
+**Pour les fichiers `.gs` (type « Script ») :**
+1. Dans l'éditeur, cliquer le `+` à côté de « Fichiers », puis choisir **Script**.
+2. Nommer le fichier exactement comme indiqué (sans écrire l'extension `.gs`).
+3. Effacer le contenu par défaut et coller à la place le code correspondant.
 
 **Pour `Sidebar.html` :**
-1. Cliquer `+` → choisir **HTML** (pas Script).
+1. Cliquer le `+`, puis choisir **HTML** (et non « Script »).
 2. Nommer le fichier `Sidebar`.
-3. Remplacer le contenu par le code HTML correspondant.
+3. Remplacer tout le contenu par le code HTML correspondant.
 
 **Pour `appsscript.json` :**
 1. Dans l'éditeur, cliquer l'icône ⚙️ **Paramètres du projet**.
-2. Cocher **"Afficher le fichier manifeste appsscript.json"**.
-3. Revenir sur le fichier `appsscript.json` qui apparaît dans la liste.
-4. Remplacer son contenu entier par le JSON fourni.
+2. Cocher la case **« Afficher le fichier manifeste appsscript.json »**.
+3. Revenir à la liste des fichiers : un fichier `appsscript.json` y est apparu. Cliquer dessus.
+4. Remplacer tout son contenu par le JSON fourni.
 
-Ordre de création recommandé :
+Créez les fichiers dans cet ordre (cela évite les messages d'erreur en cours de route) :
 1. `Config` (Script)
 2. `SheetService` (Script)
 3. `DriveService` (Script)
@@ -55,114 +70,138 @@ Ordre de création recommandé :
 5. `Menu` (Script)
 6. `Sidebar` (HTML)
 
-### Étape 4 — Enregistrer la clé API
+Après chaque collage, cliquer l'icône **💾 Enregistrer** (ou faire `Ctrl+S` / `⌘S`).
 
-La clé API ne doit **jamais** être collée dans le Sheet — elle se stocke de façon sécurisée
-dans les paramètres du script.
+> 📸 **Capture utile ici** : `docs/captures/02-editeur-fichiers.png`
+> *Ce qu'on doit voir : le bouton `+` pour ajouter un fichier et la liste des fichiers à gauche.*
 
-> 💡 Vous le ferez plus facilement via le menu ADAGP après l'étape 5.
-> Mais si vous préférez le faire maintenant :
-> 1. Dans l'éditeur Apps Script : icône ⚙️ → **Propriétés du script**.
-> 2. Cliquer **"Ajouter une propriété"**.
-> 3. Nom : `AI_API_KEY` — Valeur : votre clé Gemini ou OpenAI.
+### Étape 4 : enregistrer la clé API
+
+La clé API ne se colle **jamais** dans le Sheet : elle se range de façon sécurisée dans les
+paramètres du script.
+
+> 💡 Le plus simple est de le faire via le menu ADAGP, à l'étape 6. Vous pouvez donc sauter cette
+> étape pour l'instant.
+>
+> Si vous préférez quand même le faire maintenant :
+> 1. Dans l'éditeur Apps Script, cliquer l'icône ⚙️, puis **Propriétés du script**.
+> 2. Cliquer **« Ajouter une propriété »**.
+> 3. Nom : `AI_API_KEY`. Valeur : votre clé Gemini (ou OpenAI).
 > 4. Cliquer **Enregistrer**.
 
-### Étape 5 — Initialiser le Sheet
+### Étape 5 : initialiser le Sheet
 
-1. Retourner dans le Google Sheet et **recharger la page** (F5 ou ⌘R).
-2. Un menu **ADAGP** apparaît dans la barre de menus.
-   *(Si le menu n'apparaît pas, attendre quelques secondes et recharger à nouveau.)*
-3. Cliquer **ADAGP → Initialiser les onglets**.
-4. Une fenêtre d'autorisation peut apparaître → accepter les accès demandés
-   (Drive, Sheets, appels URL externes pour l'IA).
+1. Retourner dans le Google Sheet et **recharger la page** (touche `F5`, ou `⌘R` sur Mac).
+2. Un nouveau menu **ADAGP** apparaît dans la barre de menus, en haut.
+   *(S'il n'apparaît pas, patientez quelques secondes et rechargez encore une fois.)*
+3. Cliquer **ADAGP**, puis **Initialiser les onglets**.
+4. Une fenêtre d'autorisation peut s'ouvrir : c'est Google qui vérifie que vous êtes d'accord.
+   Accepter les accès demandés (Drive, Sheets, et appels vers l'IA). C'est sans risque.
 5. Quatre onglets sont créés : `📺 Déclarations TV`, `📰 Déclarations Presse`, `⚙️ Config`, `🎨 Œuvres`.
 
-### Étape 6 — Configurer la clé API via le menu
+> 📸 **Capture utile ici** : `docs/captures/03-menu-adagp.png`
+> *Ce qu'on doit voir : le menu « ADAGP » déroulé avec ses options.*
 
-1. Cliquer **ADAGP → Configurer la clé API**.
-2. Coller votre clé Gemini (ou OpenAI).
-3. Cliquer OK → message de confirmation.
+### Étape 6 : configurer la clé API via le menu
 
-### Étape 7 — Renseigner le dossier Drive source
+1. Cliquer **ADAGP**, puis **Configurer la clé API**.
+2. Coller votre clé Gemini (ou OpenAI) dans la fenêtre.
+3. Cliquer **OK**. Un message confirme que c'est enregistré.
+
+### Étape 7 : indiquer le dossier Drive source
+
+C'est le dossier où vous déposerez vos captures et scans.
 
 1. Aller dans l'onglet **⚙️ Config**.
 2. Trouver la ligne `DRIVE_FOLDER_ID`.
-3. Coller l'ID de votre dossier Google Drive dans la colonne **Valeur**.
-   - L'ID se trouve dans l'URL du dossier Drive :
-     `https://drive.google.com/drive/folders/**VOTRE_ID_ICI**`
+3. Coller l'identifiant de votre dossier Google Drive dans la colonne **Valeur**.
+   - Cet identifiant se trouve dans l'adresse (URL) du dossier, après `folders/` :
+     `https://drive.google.com/drive/folders/`**`VOTRE_ID_ICI`**
 
-### Étape 8 — Ajouter vos œuvres
+> 📸 **Capture utile ici** : `docs/captures/04-drive-folder-id.png`
+> *Ce qu'on doit voir : la barre d'adresse du navigateur avec la partie ID du dossier entourée.*
+
+### Étape 8 : ajouter vos œuvres
 
 1. Aller dans l'onglet **🎨 Œuvres**.
-2. Remplir la liste de vos créations (une par ligne, colonne "Titre").
-3. L'IA utilisera cette liste pour identifier l'œuvre visible sur chaque capture.
+2. Inscrire la liste de vos créations, une par ligne, dans la colonne « Titre ».
+3. L'IA s'appuiera sur cette liste pour reconnaître l'œuvre visible sur chaque capture.
+
+**C'est terminé.** Vous n'aurez plus jamais à refaire ces 8 étapes.
 
 ---
 
 ## Utilisation au quotidien
 
+Trois actions, toujours les mêmes.
+
 ### 1. Déposer vos fichiers
 
-Glissez vos captures TV (JPG, PNG) ou scans presse (PDF, JPG) dans le dossier Google Drive
-que vous avez configuré.
+Glissez vos captures TV (JPG, PNG) ou vos scans presse (PDF, JPG) dans le dossier Google Drive que
+vous avez indiqué à l'étape 7.
 
-Formats acceptés : **JPG, PNG, PDF, GIF, WEBP**
+Formats acceptés : **JPG, PNG, PDF, GIF, WEBP**.
 
-> L'outil détecte automatiquement le type (TV ou Presse) d'après le nom du fichier :
-> les PDF et les noms contenant des mots-clés presse (cosmo, figaro, monde…) sont traités
-> comme de la presse ; tout le reste comme de la TV.
+> L'outil devine tout seul le type de chaque fichier (TV ou Presse) d'après son nom : les PDF et les
+> noms contenant un mot de presse (cosmo, figaro, monde, etc.) sont traités comme de la presse ; tout
+> le reste comme de la TV.
 
 ### 2. Lancer le traitement
 
-Dans votre Google Sheet, cliquer **ADAGP → Traiter les nouveaux fichiers**.
+Dans votre Google Sheet, cliquer **ADAGP**, puis **Traiter les nouveaux fichiers**.
 
-### 3. Valider chaque passage
+### 3. Vérifier chaque passage
 
-Un panneau latéral s'ouvre pour chaque fichier avec le badge **📺 TV** ou **📰 Presse** :
+Un panneau s'ouvre sur le côté droit pour chaque fichier, avec le badge **📺 TV** ou **📰 Presse**.
+L'IA a déjà pré-rempli les champs : vous n'avez qu'à relire et corriger si besoin.
 
-**Vue TV :**
+**Ce que vous voyez pour une capture TV :**
 ```
-┌─────────────────────────────────────┐
-│  France 4 les maternelles.png   📺  │
-│  Fichier 1 sur 5 non traité(s)      │
-│  [ Aperçu du fichier ]              │
-├─────────────────────────────────────┤
-│  Chaîne TV    [france4  ]  Type ém. [Magazine ▼]
-│  Date         [27/10/2025] Heure    [19:30   ]
-│  Titre émission [Les Maternelles    ]
-│  Épisode        [                  ]
-│  Titre de l'œuvre  [La Meuf en paillettes ▼]
-│  Nb d'œuvres  [1]  Type util.  [Banc-titre ▼]
-│  Commentaire    [Reportage…         ]
-├─────────────────────────────────────┤
-│  [⏭ Ignorer]    [💾 Valider]       │
-└─────────────────────────────────────┘
-```
-
-**Vue Presse :**
-```
-┌─────────────────────────────────────┐
-│  COSMO 2.jpg                    📰  │
-│  Fichier 2 sur 5 non traité(s)      │
-│  [ Aperçu du fichier ]              │
-├─────────────────────────────────────┤
-│  Titre de presse  [Cosmopolitan    ]
-│  Pays  [France]   Année  [2026     ]
-│  Titre de l'œuvre [La Meuf…  ▼    ]
-│  Nb d'images reproduites  [1       ]
-│  Commentaires / Observations  […   ]
-├─────────────────────────────────────┤
-│  [⏭ Ignorer]    [💾 Valider]       │
-└─────────────────────────────────────┘
++-------------------------------------+
+|  France 4 les maternelles.png   📺  |
+|  Fichier 1 sur 5 non traité(s)      |
+|  [ Aperçu du fichier ]              |
++-------------------------------------+
+|  Chaîne TV    [france4  ]  Type ém. [Magazine v]
+|  Date         [27/10/2025] Heure    [19:30   ]
+|  Titre émission [Les Maternelles    ]
+|  Épisode        [                  ]
+|  Titre de l'œuvre  [La Meuf en paillettes v]
+|  Nb d'œuvres  [1]  Type util.  [Banc-titre v]
+|  Commentaire    [Reportage...        ]
++-------------------------------------+
+|  [Ignorer]              [Valider]   |
++-------------------------------------+
 ```
 
-- **💾 Valider** → enregistre la ligne dans l'onglet correspondant et passe au fichier suivant
-- **⏭ Ignorer** → saute ce fichier pour cette session (il réapparaîtra au prochain lancement)
+**Ce que vous voyez pour un scan presse :**
+```
++-------------------------------------+
+|  COSMO 2.jpg                    📰  |
+|  Fichier 2 sur 5 non traité(s)      |
+|  [ Aperçu du fichier ]              |
++-------------------------------------+
+|  Titre de presse  [Cosmopolitan    ]
+|  Pays  [France]   Année  [2026     ]
+|  Titre de l'œuvre [La Meuf...  v   ]
+|  Nb d'images reproduites  [1       ]
+|  Commentaires / Observations  [...  ]
++-------------------------------------+
+|  [Ignorer]              [Valider]   |
++-------------------------------------+
+```
+
+- Bouton **Valider** : enregistre la ligne dans le bon onglet et passe au fichier suivant.
+- Bouton **Ignorer** : saute ce fichier pour cette fois (il reviendra au prochain traitement).
+
+> 📸 **Capture utile ici** : `docs/captures/05-panneau-lateral.png`
+> *Ce qu'on doit voir : le vrai panneau latéral ouvert sur un fichier, avec l'aperçu et les champs.*
 
 ### 4. Consulter vos déclarations
 
-Les onglets **📺 Déclarations TV** et **📰 Déclarations Presse** contiennent toutes vos
-déclarations validées, avec les colonnes exactes du formulaire officiel ADAGP.
+Les onglets **📺 Déclarations TV** et **📰 Déclarations Presse** rassemblent toutes vos déclarations
+validées, avec les colonnes exactes du formulaire officiel ADAGP. Vous pouvez les recopier dans le
+portail ADAGP, ou les garder comme archive.
 
 ---
 
@@ -177,18 +216,19 @@ Dans l'onglet **⚙️ Config**, modifier les cellules `AI_PROVIDER` et `AI_MODE
 | GPT-4o mini | `openai` | `gpt-4o-mini` | OpenAI |
 | GPT-4o | `openai` | `gpt-4o` | OpenAI |
 
-Si vous changez de fournisseur, mettez à jour votre clé API via **ADAGP → Configurer la clé API**.
+Si vous changez de fournisseur, pensez à mettre à jour votre clé API via **ADAGP**, puis
+**Configurer la clé API**.
 
 ---
 
-## Adapter les prompts d'extraction
+## Adapter les instructions données à l'IA
 
-Les cellules `PROMPT_TV` et `PROMPT_PRESSE` dans l'onglet ⚙️ Config contiennent les instructions
-envoyées à l'IA pour chaque type de fichier. Vous pouvez les modifier directement si les résultats
-ne sont pas satisfaisants.
+Les cellules `PROMPT_TV` et `PROMPT_PRESSE`, dans l'onglet ⚙️ Config, contiennent les consignes
+envoyées à l'IA pour chaque type de fichier. Si les résultats ne vous conviennent pas, vous pouvez
+les modifier directement.
 
-Le marqueur `[LISTE_OEUVRES]` est automatiquement remplacé par la liste de vos œuvres
-de l'onglet 🎨 Œuvres.
+Le repère `[LISTE_OEUVRES]` est remplacé automatiquement par la liste de vos œuvres de l'onglet
+🎨 Œuvres : laissez-le tel quel.
 
 ---
 
@@ -196,15 +236,18 @@ de l'onglet 🎨 Œuvres.
 
 | Problème | Solution |
 |---|---|
-| Le menu ADAGP n'apparaît pas | Recharger la page (F5) — attendre 5–10 secondes |
-| "DRIVE_FOLDER_ID non configuré" | Renseigner l'ID dans l'onglet ⚙️ Config |
-| "Gemini API erreur 400" | Vérifier la clé API (ADAGP → Configurer la clé API) |
-| "Gemini API erreur 429" | Quota dépassé — réessayer dans 1 minute |
-| "Onglet introuvable" | Lancer ADAGP → Initialiser les onglets |
-| L'aperçu du fichier ne s'affiche pas | Vérifier que le fichier est dans un Drive accessible par votre compte Google |
-| L'IA laisse les champs vides | Remplir manuellement — ajuster `PROMPT_TV` ou `PROMPT_PRESSE` dans ⚙️ Config |
+| Le menu ADAGP n'apparaît pas | Recharger la page (`F5`), puis patienter 5 à 10 secondes |
+| « DRIVE_FOLDER_ID non configuré » | Indiquer l'ID du dossier dans l'onglet ⚙️ Config (étape 7) |
+| « Gemini API erreur 400 » | Vérifier la clé API (ADAGP, puis Configurer la clé API) |
+| « Gemini API erreur 429 » | Quota momentané dépassé : réessayer dans une minute |
+| « Onglet introuvable » | Relancer ADAGP, puis Initialiser les onglets |
+| L'aperçu du fichier ne s'affiche pas | Vérifier que le fichier est dans un Drive accessible avec votre compte Google |
+| L'IA laisse des champs vides | Les remplir à la main ; au besoin, ajuster `PROMPT_TV` ou `PROMPT_PRESSE` dans ⚙️ Config |
 | Le menu demande des autorisations | Accepter : l'outil a besoin d'accéder à Drive, Sheets et à l'API IA |
-| Fichier TV traité comme Presse | Renommer le fichier pour enlever les mots-clés presse |
+| Un fichier TV est traité comme Presse | Renommer le fichier pour retirer le mot-clé presse |
+
+En cas de doute, rien n'est définitif : vous pouvez toujours relancer **ADAGP**, puis
+**Initialiser les onglets**, ou recommencer une étape de l'installation.
 
 ---
 
@@ -214,8 +257,8 @@ de l'onglet 🎨 Œuvres.
 |---|---|
 | `📺 Déclarations TV` | Passages TV validés (colonnes du formulaire ADAGP Télévision) |
 | `📰 Déclarations Presse` | Articles presse validés (colonnes du formulaire ADAGP Presse) |
-| `⚙️ Config` | Paramètres : dossier Drive, modèle IA, prompts d'extraction |
-| `🎨 Œuvres` | Liste de vos œuvres (utilisée par l'IA pour identifier les titres) |
+| `⚙️ Config` | Paramètres : dossier Drive, modèle IA, consignes d'extraction |
+| `🎨 Œuvres` | Liste de vos œuvres (utilisée par l'IA pour reconnaître les titres) |
 
 ### Colonnes `📺 Déclarations TV`
 
@@ -229,4 +272,5 @@ de l'onglet 🎨 Œuvres.
 
 ---
 
-*Outil développé par [Studio Dragamig](https://studiodragamig.fr) pour la gestion des droits ADAGP — [Association pour la Diffusion des Arts Graphiques et Plastiques](https://www.adagp.fr)*
+*Outil développé par [Studio Dragamig](https://studiodragamig.fr) pour la gestion des droits ADAGP.
+ADAGP : [Association pour la Diffusion des Arts Graphiques et Plastiques](https://www.adagp.fr).*
