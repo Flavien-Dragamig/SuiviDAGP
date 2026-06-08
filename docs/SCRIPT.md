@@ -96,6 +96,7 @@ function populateDefaultConfig(ss) {
     ['DRIVE_FOLDER_ID', '', "ID du dossier Google Drive (dans l'URL après /folders/)"],
     ['AI_PROVIDER', 'gemini', 'gemini ou openai'],
     ['AI_MODEL', 'gemini-2.0-flash', 'Nom du modèle IA'],
+    ['ARTISTE', 'Laure Barrière (auteure de BD/romans graphiques)', "Nom de l'artiste/adhérente, injecté dans les prompts via [ARTISTE]"],
     ['PROMPT_TV', getDefaultPromptTV(), "Prompt IA pour les captures TV (modifiable)"],
     ['PROMPT_PRESSE', getDefaultPromptPresse(), "Prompt IA pour les scans Presse (modifiable)"]
   ];
@@ -106,7 +107,7 @@ function populateDefaultConfig(ss) {
 
 function getDefaultPromptTV() {
   return "Tu analyses une capture d'écran de télévision ou de plateforme vidéo à la demande.\n"
-    + "L'artiste concernée est Laure Barrière (auteure de BD/romans graphiques).\n"
+    + "L'artiste concernée est [ARTISTE].\n"
     + "Extrais les informations suivantes au format JSON :\n"
     + "{\n"
     + '  "type_media": "TV",\n'
@@ -126,7 +127,7 @@ function getDefaultPromptTV() {
 
 function getDefaultPromptPresse() {
   return "Tu analyses un scan d'article de presse écrite ou de site internet.\n"
-    + "L'artiste concernée est Laure Barrière (auteure de BD/romans graphiques).\n"
+    + "L'artiste concernée est [ARTISTE].\n"
     + "Extrais les informations suivantes au format JSON :\n"
     + "{\n"
     + '  "type_media": "Presse",\n'
@@ -165,16 +166,16 @@ function appendDeclaration(data) {
     var sheetTV = ss.getSheetByName('📺 Déclarations TV');
     if (!sheetTV) throw new Error("Onglet '📺 Déclarations TV' introuvable. Lancez ADAGP → Initialiser les onglets.");
     sheetTV.appendRow([
-      data.chaine_tv        || '',
-      data.date             || '',
-      data.heure            || '',
-      data.type_emission    || '',
-      data.titre_emission   || '',
-      data.episode          || '',
-      data.titre_oeuvre     || '',
-      data.nb_oeuvres       || 1,
-      data.type_utilisation || '',
-      data.commentaire      || '',
+      data.chaine_tv       || '',
+      data.date            || '',
+      data.heure           || '',
+      data.type_emission   || '',
+      data.titre_emission  || '',
+      data.episode         || '',
+      data.titre_oeuvre    || '',
+      data.nb_oeuvres      || 1,
+      data.type_utilisation|| '',
+      data.commentaire     || '',
       driveUrl,
       'validé',
       today,
@@ -248,6 +249,14 @@ function getUnprocessedFiles() {
  * et retourne l'objet JSON parsé.
  */
 
+/**
+ * Point d'entrée : extrait les champs ADAGP d'une image.
+ * Choisit automatiquement PROMPT_TV ou PROMPT_PRESSE selon le nom du fichier,
+ * avec PROMPT_TV comme fallback si le type n'est pas détectable.
+ * @param {string} fileId  - ID Google Drive du fichier image
+ * @param {Object} config  - Objet config issu de getConfig()
+ * @returns {Object}       - Objet JSON extrait par le modèle
+ */
 function extractFromImage(fileId, config) {
   var file = DriveApp.getFileById(fileId);
   var blob = file.getBlob();
@@ -259,7 +268,7 @@ function extractFromImage(fileId, config) {
     ? (config.PROMPT_PRESSE || getDefaultPromptPresse())
     : (config.PROMPT_TV    || getDefaultPromptTV());
 
-  var prompt = buildPrompt(promptTemplate, oeuvres);
+  var prompt = buildPrompt(promptTemplate, oeuvres, config);
 
   if (config.AI_PROVIDER === 'openai') {
     return callOpenAI(base64, mimeType, prompt, config);
@@ -267,18 +276,44 @@ function extractFromImage(fileId, config) {
   return callGemini(base64, mimeType, prompt, config);
 }
 
+/**
+ * Détecte le type de média (TV ou Presse) depuis le nom du fichier.
+ * Convention : les scans presse sont dans un dossier "presses" ou ont un nom incluant
+ * des indicateurs presse (pdf, Cosmo, etc.). Fallback : TV.
+ * @param {string} filename
+ * @returns {string} 'TV' ou 'Presse'
+ */
 function detectMediaType(filename) {
   var lower = filename.toLowerCase();
+  // Signaux presse : PDF, noms de magazines connus, "presse"
   if (/\.pdf$/.test(lower)) return 'Presse';
   if (/cosmo|figaro|monde|obs|elle|marie|vogue|express|point|telerama|presse|magazine|journal|article/.test(lower)) return 'Presse';
   return 'TV';
 }
 
-function buildPrompt(template, oeuvres) {
+/**
+ * Injecte la liste des œuvres et le nom de l'artiste dans le template de prompt.
+ * @param {string}   template - Template contenant '[LISTE_OEUVRES]' et/ou '[ARTISTE]'
+ * @param {string[]} oeuvres  - Titres des œuvres connues
+ * @param {Object}   config   - Config (utilise config.ARTISTE)
+ * @returns {string}          - Prompt final
+ */
+function buildPrompt(template, oeuvres, config) {
   var liste = oeuvres.length > 0 ? oeuvres.join(', ') : 'aucune liste disponible';
-  return template.split('[LISTE_OEUVRES]').join(liste);
+  var artiste = (config && config.ARTISTE) ? config.ARTISTE : "l'adhérente ADAGP";
+  return template
+    .split('[LISTE_OEUVRES]').join(liste)
+    .split('[ARTISTE]').join(artiste);
 }
 
+/**
+ * Appelle l'API Gemini (Google Generative Language) avec vision.
+ * @param {string} base64   - Image encodée en base64
+ * @param {string} mimeType - Type MIME de l'image (ex: image/jpeg)
+ * @param {string} prompt   - Prompt d'extraction
+ * @param {Object} config   - Config (AI_MODEL, AI_API_KEY)
+ * @returns {Object}        - Objet JSON parsé depuis la réponse Gemini
+ */
 function callGemini(base64, mimeType, prompt, config) {
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/'
     + config.AI_MODEL + ':generateContent?key=' + config.AI_API_KEY;
@@ -306,6 +341,14 @@ function callGemini(base64, mimeType, prompt, config) {
   return JSON.parse(text);
 }
 
+/**
+ * Appelle l'API OpenAI (GPT-4 Vision) avec mode JSON forcé.
+ * @param {string} base64   - Image encodée en base64
+ * @param {string} mimeType - Type MIME de l'image (ex: image/jpeg)
+ * @param {string} prompt   - Prompt d'extraction
+ * @param {Object} config   - Config (AI_MODEL, AI_API_KEY)
+ * @returns {Object}        - Objet JSON parsé depuis la réponse OpenAI
+ */
 function callOpenAI(base64, mimeType, prompt, config) {
   var url = 'https://api.openai.com/v1/chat/completions';
   var payload = {
@@ -603,27 +646,27 @@ function saveDeclaration(data) {
         badge.className = 'media-badge badge-presse';
         document.getElementById('form-tv').style.display = 'none';
         document.getElementById('form-presse').style.display = 'block';
-        document.getElementById('pr-titre').value       = f.titre_presse || '';
-        document.getElementById('pr-pays').value        = f.pays         || 'France';
-        document.getElementById('pr-annee').value       = f.annee        || '';
-        document.getElementById('pr-oeuvre').value      = f.titre_oeuvre || '';
-        document.getElementById('pr-nb-images').value   = f.nb_images    || 1;
-        document.getElementById('pr-commentaire').value = f.commentaire  || '';
+        document.getElementById('pr-titre').value      = f.titre_presse || '';
+        document.getElementById('pr-pays').value       = f.pays         || 'France';
+        document.getElementById('pr-annee').value      = f.annee        || '';
+        document.getElementById('pr-oeuvre').value     = f.titre_oeuvre || '';
+        document.getElementById('pr-nb-images').value  = f.nb_images    || 1;
+        document.getElementById('pr-commentaire').value = f.commentaire || '';
       } else {
         badge.textContent = '📺 TV';
         badge.className = 'media-badge badge-tv';
         document.getElementById('form-presse').style.display = 'none';
         document.getElementById('form-tv').style.display = 'block';
-        document.getElementById('tv-chaine').value           = f.chaine_tv         || '';
-        document.getElementById('tv-date').value             = f.date              || '';
-        document.getElementById('tv-heure').value            = f.heure             || '';
-        document.getElementById('tv-type-emission').value    = f.type_emission     || '';
-        document.getElementById('tv-titre-emission').value   = f.titre_emission    || '';
-        document.getElementById('tv-episode').value          = f.episode           || '';
-        document.getElementById('tv-oeuvre').value           = f.titre_oeuvre      || '';
-        document.getElementById('tv-nb-oeuvres').value       = f.nb_oeuvres        || 1;
-        document.getElementById('tv-type-utilisation').value = f.type_utilisation  || '';
-        document.getElementById('tv-commentaire').value      = f.commentaire       || '';
+        document.getElementById('tv-chaine').value          = f.chaine_tv        || '';
+        document.getElementById('tv-date').value            = f.date             || '';
+        document.getElementById('tv-heure').value           = f.heure            || '';
+        document.getElementById('tv-type-emission').value   = f.type_emission    || '';
+        document.getElementById('tv-titre-emission').value  = f.titre_emission   || '';
+        document.getElementById('tv-episode').value         = f.episode          || '';
+        document.getElementById('tv-oeuvre').value          = f.titre_oeuvre     || '';
+        document.getElementById('tv-nb-oeuvres').value      = f.nb_oeuvres       || 1;
+        document.getElementById('tv-type-utilisation').value = f.type_utilisation || '';
+        document.getElementById('tv-commentaire').value     = f.commentaire      || '';
       }
 
       var errBox = document.getElementById('ai-error');
@@ -645,12 +688,12 @@ function saveDeclaration(data) {
 
       var data = { fileId: currentFileId, type_media: currentType };
       if (currentType === 'Presse') {
-        data.titre_presse = document.getElementById('pr-titre').value.trim();
-        data.pays         = document.getElementById('pr-pays').value.trim();
-        data.annee        = document.getElementById('pr-annee').value.trim();
-        data.titre_oeuvre = document.getElementById('pr-oeuvre').value;
-        data.nb_images    = parseInt(document.getElementById('pr-nb-images').value, 10) || 1;
-        data.commentaire  = document.getElementById('pr-commentaire').value.trim();
+        data.titre_presse  = document.getElementById('pr-titre').value.trim();
+        data.pays          = document.getElementById('pr-pays').value.trim();
+        data.annee         = document.getElementById('pr-annee').value.trim();
+        data.titre_oeuvre  = document.getElementById('pr-oeuvre').value;
+        data.nb_images     = parseInt(document.getElementById('pr-nb-images').value, 10) || 1;
+        data.commentaire   = document.getElementById('pr-commentaire').value.trim();
       } else {
         data.chaine_tv        = document.getElementById('tv-chaine').value.trim();
         data.date             = document.getElementById('tv-date').value.trim();

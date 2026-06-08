@@ -23,7 +23,7 @@ function extractFromImage(fileId, config) {
     ? (config.PROMPT_PRESSE || getDefaultPromptPresse())
     : (config.PROMPT_TV    || getDefaultPromptTV());
 
-  var prompt = buildPrompt(promptTemplate, oeuvres);
+  var prompt = buildPrompt(promptTemplate, oeuvres, config);
 
   if (config.AI_PROVIDER === 'openai') {
     return callOpenAI(base64, mimeType, prompt, config);
@@ -47,14 +47,18 @@ function detectMediaType(filename) {
 }
 
 /**
- * Injecte la liste des œuvres dans le template de prompt.
- * @param {string}   template - Template contenant '[LISTE_OEUVRES]'
+ * Injecte la liste des œuvres et le nom de l'artiste dans le template de prompt.
+ * @param {string}   template - Template contenant '[LISTE_OEUVRES]' et/ou '[ARTISTE]'
  * @param {string[]} oeuvres  - Titres des œuvres connues
+ * @param {Object}   config   - Config (utilise config.ARTISTE)
  * @returns {string}          - Prompt final
  */
-function buildPrompt(template, oeuvres) {
+function buildPrompt(template, oeuvres, config) {
   var liste = oeuvres.length > 0 ? oeuvres.join(', ') : 'aucune liste disponible';
-  return template.split('[LISTE_OEUVRES]').join(liste);
+  var artiste = (config && config.ARTISTE) ? config.ARTISTE : "l'adhérente ADAGP";
+  return template
+    .split('[LISTE_OEUVRES]').join(liste)
+    .split('[ARTISTE]').join(artiste);
 }
 
 /**

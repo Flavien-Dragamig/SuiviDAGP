@@ -42,6 +42,7 @@ function populateDefaultConfig(ss) {
     ['DRIVE_FOLDER_ID', '', "ID du dossier Google Drive (dans l'URL après /folders/)"],
     ['AI_PROVIDER', 'gemini', 'gemini ou openai'],
     ['AI_MODEL', 'gemini-2.0-flash', 'Nom du modèle IA'],
+    ['ARTISTE', 'Laure Barrière (auteure de BD/romans graphiques)', "Nom de l'artiste/adhérente, injecté dans les prompts via [ARTISTE]"],
     ['PROMPT_TV', getDefaultPromptTV(), "Prompt IA pour les captures TV (modifiable)"],
     ['PROMPT_PRESSE', getDefaultPromptPresse(), "Prompt IA pour les scans Presse (modifiable)"]
   ];
@@ -52,7 +53,7 @@ function populateDefaultConfig(ss) {
 
 function getDefaultPromptTV() {
   return "Tu analyses une capture d'écran de télévision ou de plateforme vidéo à la demande.\n"
-    + "L'artiste concernée est Laure Barrière (auteure de BD/romans graphiques).\n"
+    + "L'artiste concernée est [ARTISTE].\n"
     + "Extrais les informations suivantes au format JSON :\n"
     + "{\n"
     + '  "type_media": "TV",\n'
@@ -72,7 +73,7 @@ function getDefaultPromptTV() {
 
 function getDefaultPromptPresse() {
   return "Tu analyses un scan d'article de presse écrite ou de site internet.\n"
-    + "L'artiste concernée est Laure Barrière (auteure de BD/romans graphiques).\n"
+    + "L'artiste concernée est [ARTISTE].\n"
     + "Extrais les informations suivantes au format JSON :\n"
     + "{\n"
     + '  "type_media": "Presse",\n'

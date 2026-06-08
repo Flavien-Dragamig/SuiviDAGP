@@ -126,6 +126,8 @@ C'est le dossier où vous déposerez vos captures et scans.
 1. Aller dans l'onglet **🎨 Œuvres**.
 2. Inscrire la liste de vos créations, une par ligne, dans la colonne « Titre ».
 3. L'IA s'appuiera sur cette liste pour reconnaître l'œuvre visible sur chaque capture.
+4. Dans l'onglet **⚙️ Config**, mettre votre nom (ou celui de l'adhérente) dans la cellule
+   `ARTISTE`. L'IA s'en sert pour mieux repérer vos œuvres dans les images.
 
 **C'est terminé.** Vous n'aurez plus jamais à refaire ces 8 étapes.
 
@@ -227,8 +229,10 @@ Les cellules `PROMPT_TV` et `PROMPT_PRESSE`, dans l'onglet ⚙️ Config, contie
 envoyées à l'IA pour chaque type de fichier. Si les résultats ne vous conviennent pas, vous pouvez
 les modifier directement.
 
-Le repère `[LISTE_OEUVRES]` est remplacé automatiquement par la liste de vos œuvres de l'onglet
-🎨 Œuvres : laissez-le tel quel.
+Deux repères sont remplacés automatiquement dans ces consignes (laissez-les tels quels) :
+
+- `[ARTISTE]` : remplacé par le nom inscrit dans la cellule `ARTISTE` de l'onglet ⚙️ Config.
+- `[LISTE_OEUVRES]` : remplacé par la liste de vos œuvres de l'onglet 🎨 Œuvres.
 
 ---
 
@@ -257,7 +261,7 @@ En cas de doute, rien n'est définitif : vous pouvez toujours relancer **ADAGP**
 |---|---|
 | `📺 Déclarations TV` | Passages TV validés (colonnes du formulaire ADAGP Télévision) |
 | `📰 Déclarations Presse` | Articles presse validés (colonnes du formulaire ADAGP Presse) |
-| `⚙️ Config` | Paramètres : dossier Drive, modèle IA, consignes d'extraction |
+| `⚙️ Config` | Paramètres : dossier Drive, modèle IA, nom de l'artiste, consignes d'extraction |
 | `🎨 Œuvres` | Liste de vos œuvres (utilisée par l'IA pour reconnaître les titres) |
 
 ### Colonnes `📺 Déclarations TV`
@@ -269,6 +273,10 @@ En cas de doute, rien n'est définitif : vous pouvez toujours relancer **ADAGP**
 
 | Titre de presse | Pays | Année de parution | Titre de l'œuvre | Nb d'images reproduites | Commentaires / Observations | Lien Drive | Statut | Date de saisie |
 |---|---|---|---|---|---|---|---|---|
+
+> Chaque onglet contient aussi une dernière colonne technique **`ID Drive`**, masquée
+> automatiquement. Elle sert à l'outil pour ne pas retraiter deux fois le même fichier :
+> laissez-la telle quelle, inutile d'y toucher.
 
 ---
 
