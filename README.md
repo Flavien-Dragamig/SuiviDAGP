@@ -41,9 +41,9 @@ reprendre plus tard sans rien perdre.
 > 📸 **Capture utile ici** : `docs/captures/01-menu-extensions.png`
 > *Ce qu'on doit voir : le menu « Extensions » ouvert avec l'option « Apps Script » surlignée.*
 
-### Étape 3 : copier le code depuis `docs/SCRIPT.md`
+### Étape 3 : copier le code depuis <a href="docs/SCRIPT.md" target="_blank" rel="noopener"><code>docs/SCRIPT.md</code></a>
 
-Le fichier `docs/SCRIPT.md` contient tout le code à recopier, fichier par fichier. Ouvrez-le à côté,
+Le fichier <a href="docs/SCRIPT.md" target="_blank" rel="noopener"><code>docs/SCRIPT.md</code></a> contient tout le code à recopier, fichier par fichier. Ouvrez-le à côté,
 et pour chaque fichier décrit, suivez la méthode correspondante ci-dessous.
 
 **Pour les fichiers `.gs` (type « Script ») :**
